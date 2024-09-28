@@ -1,80 +1,103 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const app = express();
-const port = 5000;
 
-// Create or open the database
-const db = new sqlite3.Database('variables.db');
-
-// Middleware to parse JSON requests
+// Middleware to parse JSON request bodies
 app.use(express.json());
 
-// Create a table if not exists
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS variables (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
+// Serve static files (like index.html) from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Initialize the SQLite database
+let db = new sqlite3.Database('./variables.db', (err) => {
+  if (err) {
+    console.error('Error opening database: ' + err.message);
+  } else {
+    console.log('Connected to the SQLite database.');
+    db.run(
+      `CREATE TABLE IF NOT EXISTS variables (
+        name TEXT PRIMARY KEY,
         value TEXT
-    )`);
+      )`,
+      (err) => {
+        if (err) {
+          console.error('Error creating table: ' + err.message);
+        }
+      }
+    );
+  }
 });
 
-// API to get all variables
+// API Route to get all variables
 app.get('/variables', (req, res) => {
-    db.all("SELECT * FROM variables", [], (err, rows) => {
-        if (err) {
-            return res.status(500).json({error: err.message});
-        }
-        res.json(rows);
-    });
+  db.all('SELECT name, value FROM variables', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json(rows);
+  });
 });
 
-// API to get a variable by name
+// API Route to get a specific variable by name
 app.get('/variables/:name', (req, res) => {
-    const name = req.params.name;
-    db.get("SELECT * FROM variables WHERE name = ?", [name], (err, row) => {
-        if (err) {
-            return res.status(500).json({error: err.message});
-        }
-        if (row) {
-            res.json(row);
-        } else {
-            res.status(404).json({message: "Variable not found"});
-        }
-    });
+  const { name } = req.params;
+  db.get('SELECT value FROM variables WHERE name = ?', [name], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!row) {
+      res.status(404).json({ message: 'Variable not found' });
+      return;
+    }
+    res.json({ name, value: row.value });
+  });
 });
 
-// API to create or update a variable
+// API Route to add or update a variable
 app.post('/variables', (req, res) => {
-    const { name, value } = req.body;
-    db.run("INSERT OR REPLACE INTO variables (name, value) VALUES (?, ?)", [name, value], function(err) {
-        if (err) {
-            return res.status(500).json({error: err.message});
-        }
-        res.json({message: "Variable created/updated", id: this.lastID});
-    });
+  const { name, value } = req.body;
+  if (!name || !value) {
+    return res.status(400).json({ error: 'Name and value are required' });
+  }
+  db.run(
+    'INSERT INTO variables (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = excluded.value',
+    [name, value],
+    function (err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Variable added/updated', name, value });
+    }
+  );
 });
 
-// API to delete a variable
+// API Route to delete a variable
 app.delete('/variables/:name', (req, res) => {
-    const name = req.params.name;
-    db.run("DELETE FROM variables WHERE name = ?", [name], function(err) {
-        if (err) {
-            return res.status(500).json({error: err.message});
-        }
-        if (this.changes) {
-            res.json({message: "Variable deleted"});
-        } else {
-            res.status(404).json({message: "Variable not found"});
-        }
-    });
+  const { name } = req.params;
+  db.run('DELETE FROM variables WHERE name = ?', [name], function (err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      res.status(404).json({ message: 'Variable not found' });
+      return;
+    }
+    res.json({ message: 'Variable deleted' });
+  });
 });
 
-// Error handling
-app.use((err, req, res, next) => {
-    res.status(500).json({ error: 'Something went wrong!' });
+// Serve index.html at the root URL
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+// Port configuration
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
