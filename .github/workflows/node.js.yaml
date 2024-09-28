@@ -12,6 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [20.x]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,13 +23,25 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
-
-      - name: create packagejson file
-        run: npm init -y  
+          node-version: ${{ matrix.node-version }}
 
       - name: Change directory to the app folder
-        run: cd app  # Change to your app directory if package.json is inside a folder
+        run: npm init -y
+
+      - name: Change directory to the app folder
+        run: cd app
 
       - name: Install dependencies
         run: npm install
+
+      # Remove or comment out the test step if you don't need it
+      # - name: Run tests (if any)
+      #   run: npm test
+
+      - name: Start the server
+        run: |
+          npm install -g serve
+          nohup node server.js &
+
+      - name: Verify Server is Running
+        run: curl http://localhost:5000/variables
