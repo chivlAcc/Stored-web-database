@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Variable Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        label { display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>Manage Variables</h1>
+
+<h2>Add/Update Variable</h2>
+<label for="name">Variable Name:</label>
+<input type="text" id="name">
+<label for="value">Variable Value:</label>
+<input type="text" id="value">
+<button onclick="addOrUpdateVariable()">Save Variable</button>
+
+<h2>Delete Variable</h2>
+<label for="deleteName">Variable Name to Delete:</label>
+<input type="text" id="deleteName">
+<button onclick="deleteVariable()">Delete Variable</button>
+
+<h2>All Variables</h2>
+<button onclick="getAllVariables()">Get All Variables</button>
+<ul id="variableList"></ul>
+
+<script>
+    const apiUrl = 'http://localhost:5000';
+
+    function addOrUpdateVariable() {
+        const name = document.getElementById('name').value;
+        const value = document.getElementById('value').value;
+
+        fetch(`${apiUrl}/variables`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, value })
+        }).then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            getAllVariables();
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function deleteVariable() {
+        const name = document.getElementById('deleteName').value;
+
+        fetch(`${apiUrl}/variables/${name}`, { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            getAllVariables();
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function getAllVariables() {
+        fetch(`${apiUrl}/variables`)
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById('variableList');
+            list.innerHTML = '';
+            data.forEach(variable => {
+                const li = document.createElement('li');
+                li.textContent = `${variable.name}: ${variable.value}`;
+                list.appendChild(li);
+            });
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script>
+
+</body>
+</html>
