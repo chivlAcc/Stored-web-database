@@ -1,0 +1,16 @@
+{
+  "name": "stored-web-database",
+  "version": "1.0.0",
+  "description": "noney",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.2"
+  },
+  "author": "chivaa",
+  "license": "ISC"
+}
