@@ -14,7 +14,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x] # Choose compatible Node.js versions
+        node-version: [20.x]  # Use the latest version Node.js 20.x
 
     steps:
       - name: Checkout code
@@ -34,8 +34,8 @@ jobs:
       - name: Start the server
         run: |
           npm install -g serve
-          nohup node server.js & # Start your server.js
-          nohup serve -s . & # Serve your static files (e.g., index.html)
+          nohup node server.js &  # Start your server.js
+          nohup serve -s . &  # Serve your static files (e.g., index.html)
 
       - name: Verify Server is Running
         run: curl http://localhost:5000/variables
