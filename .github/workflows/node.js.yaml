@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: '20.x'
 
+      - name: create packagejson file
+        run: npm init -y  
+
       - name: Change directory to the app folder
         run: cd app  # Change to your app directory if package.json is inside a folder
 
