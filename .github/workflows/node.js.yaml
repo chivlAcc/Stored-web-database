@@ -44,9 +44,6 @@ jobs:
           nohup node server.js &   # Start the server in the background
           sleep 5                  # Wait 5 seconds for the server to start
       
-      - name: Check Port Usage
-        run: lsof -i :5000
-      
       - name: Retry curl request until success
         run: |
           for i in {1..5}; do
@@ -55,5 +52,8 @@ jobs:
             sleep 5
           done
 
+      - name: Check Port Usage
+        run: lsof -i :5000
+        
       - name: Verify Server is Running
         run: curl http://localhost:5000/variables
