@@ -1,111 +1,69 @@
+// Import required modules
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const app = express();
+const port = process.env.PORT || 5000;  // Use environment PORT or default to 5000
 
-// Middleware to parse JSON request bodies
+// In-memory database to store variables
+let variables = {
+  "var1": "initial_value",
+  "var2": 123,
+  "var3": true
+};
+
+// Middleware to parse JSON bodies
 app.use(express.json());
 
-// Serve static files (like index.html) from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Initialize the SQLite database
-let db = new sqlite3.Database('./variables.db', (err) => {
-  if (err) {
-    console.error('Error opening database: ' + err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
-    db.run(
-      `CREATE TABLE IF NOT EXISTS variables (
-        name TEXT PRIMARY KEY,
-        value TEXT
-      )`,
-      (err) => {
-        if (err) {
-          console.error('Error creating table: ' + err.message);
-        }
-      }
-    );
-  }
-});
-
-// API Route to get all variables
+// Route to fetch all variables
 app.get('/variables', (req, res) => {
-  db.all('SELECT name, value FROM variables', [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
-});
-
-// API Route to get a specific variable by name
-app.get('/variables/:name', (req, res) => {
-  const { name } = req.params;
-  db.get('SELECT value FROM variables WHERE name = ?', [name], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (!row) {
-      res.status(404).json({ message: 'Variable not found' });
-      return;
-    }
-    res.json({ name, value: row.value });
-  });
-});
-
-// API Route to add or update a variable
-app.post('/variables', (req, res) => {
-  const { name, value } = req.body;
-  if (!name || !value) {
-    return res.status(400).json({ error: 'Name and value are required' });
+  try {
+    res.json({ success: true, data: variables });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching variables', error });
   }
-  db.run(
-    'INSERT INTO variables (name, value) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET value = excluded.value',
-    [name, value],
-    function (err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ message: 'Variable added/updated', name, value });
-    }
-  );
 });
 
-// API Route to delete a variable
-app.delete('/variables/:name', (req, res) => {
-  const { name } = req.params;
-  db.run('DELETE FROM variables WHERE name = ?', [name], function (err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    if (this.changes === 0) {
-      res.status(404).json({ message: 'Variable not found' });
-      return;
-    }
-    res.json({ message: 'Variable deleted' });
-  });
+// Route to update a specific variable
+app.post('/variables', (req, res) => {
+  const { key, value } = req.body;
+
+  if (!key || value === undefined) {
+    return res.status(400).json({ success: false, message: 'Invalid request. Provide key and value.' });
+  }
+
+  try {
+    variables[key] = value;  // Update or create variable
+    res.json({ success: true, message: `Variable ${key} updated.`, data: variables });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating variable', error });
+  }
 });
 
-// Serve index.html at the root URL
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Route to delete a specific variable
+app.delete('/variables', (req, res) => {
+  const { key } = req.body;
+
+  if (!key) {
+    return res.status(400).json({ success: false, message: 'Invalid request. Provide key to delete.' });
+  }
+
+  try {
+    if (variables[key] !== undefined) {
+      delete variables[key];
+      res.json({ success: true, message: `Variable ${key} deleted.`, data: variables });
+    } else {
+      res.status(404).json({ success: false, message: `Variable ${key} not found.` });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error deleting variable', error });
+  }
 });
 
-// // Port configuration
-// const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
-// });
-
+// Start the server and listen on the specified port
 app.listen(port, '0.0.0.0', (err) => {
-    if (err) {
-        console.error('Failed to start server:', err);
-        process.exit(1); // Exit with an error code
-    }
+  if (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);  // Exit with an error code if server fails to start
+  } else {
     console.log(`Server is running on http://0.0.0.0:${port}`);
+  }
 });
