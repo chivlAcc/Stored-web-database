@@ -96,8 +96,16 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Port configuration
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// // Port configuration
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
+
+app.listen(port, '0.0.0.0', (err) => {
+    if (err) {
+        console.error('Failed to start server:', err);
+        process.exit(1); // Exit with an error code
+    }
+    console.log(`Server is running on http://0.0.0.0:${port}`);
 });
