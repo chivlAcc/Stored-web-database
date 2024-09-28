@@ -25,35 +25,19 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Change directory to the app folder
-        run: npm init -y
-
-      - name: Change directory to the app folder
-        run: cd app
-
       - name: Install dependencies
         run: npm install
 
-      # Remove or comment out the test step if you don't need it
-      # - name: Run tests (if any)
-      #   run: npm test
-
       - name: Start the server
         run: |
-          npm install -g serve
-          nohup node server.js &   # Start the server in the background
-          sleep 5                  # Wait 5 seconds for the server to start
-      
-      - name: Retry curl request until success
-        run: |
-          for i in {1..5}; do
-            curl http://localhost:5000/variables && break
-            echo "Retrying curl..."
-            sleep 5
-          done
+          nohup node server.js > server.log 2>&1 &   # Start server in the background
+          sleep 10                                    # Wait for the server to start
 
-      - name: Check Port Usage
-        run: lsof -i :5000
-        
+      - name: Check if Server Started
+        run: cat server.log                           # Check for errors in server logs
+
       - name: Verify Server is Running
         run: curl http://localhost:5000/variables
+
+      - name: Check Port Usage
+        run: lsof -i :5000                            # Ensure port 5000 is used by the server
